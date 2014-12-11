@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ dirpath }}{% end %}
+
+{% block body %}
+{% import os %}
+<ul>
+{% for file in files %}
+    <li><a href="/play/{{ os.path.join(relpath, file) }}">{{ file }}</a></li>
+{% end %}
+{% for directory in directories %}
+    <li><a href="/browse/{{ os.path.join(relpath, directory) }}">{{ directory }}</a></li>
+{% end %}
+</ul>
+{% end %}

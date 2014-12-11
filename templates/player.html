@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}Playing: {{ filename }}{% end %}
+
+{% block body %}
+<ul>
+{% for control in controls %}
+    <li>
+        <a id='playback_{{ control }}' href='javascript:void(0)'>{{ control }}</a>
+        <script>
+            $('#playback_{{ control }}').click(function() {
+                $.ajax('/control/{{ control }}');
+            });
+        </script>
+    </li>
+{% end %}
+</ul>
+{% end %}
