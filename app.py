@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 
+import logging
 import ntpath
 import os
 import os.path
 import subprocess
+import sys
 import time
 
 from os.path import isdir
@@ -23,26 +25,30 @@ from tornado.options import options
 import decorators
 
 
+logger = logging.getLogger(__name__)
+
+
 ROOT = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_ROOT = os.path.join(ROOT, u'templates')
 STATIC_ROOT = os.path.join(ROOT, u'static')
 
 
-define('port', default=8222, help='Run server on the given port.', type=int)
-define('media_root', default='/mnt/diskstation/video',
-    help='Directory where media folder is located.', type=str)
+define(u'port', default=8000, help=u'Run server on the given port.', type=int)
+define(u'media_root', default=u'/mnt/diskstation/video',
+    help=u'Directory where media folder is located.', type=str)
 
 
 class BaseHandler(tornado.web.RequestHandler):
     """BaseHandler that all handlers inherit from."""
-    pass
 
 
 class BrowseHandler(BaseHandler):
     """Handler for browsing directories."""
 
     @tornado.web.asynchronous
-    def get(self, path=''):
+    def get(self, path=u''):
+        logger.info("====== Default ENCODING: {} / {} ======".format(
+                sys.getfilesystemencoding(), os.path.expandvars('$LC_CTYPE')))
         dirpath = (os.path.join(options.media_root, path)
                 if path else options.media_root)
         if not isdir(dirpath):
@@ -90,7 +96,7 @@ class ControlHandler(BaseHandler):
                 self.application.control(control)
             except subprocess.CalledProcessError, e:
                 self.application.quit()
-        self.write(dict(message='Executed {}'.format(control)))
+        self.write(dict(message=u'Executed {}'.format(control)))
         self.finish()
 
 
@@ -134,7 +140,7 @@ class RaspberryPiPlayerApplication(tornado.web.Application):
                     [u'omxplayer', u'-r', u'-o', u'hdmi', full_filepath],
                     stdin=subprocess.PIPE)
             subprocess.check_call(
-                    [u'echo', '.'],
+                    [u'echo', u'.'],
                     stdout=self.__player_process.stdin)
             self.__is_playing = True
         except subprocess.CalledProcessError, e:
@@ -173,7 +179,7 @@ settings = dict(
 
 
 application = RaspberryPiPlayerApplication([
-    (r'/', tornado.web.RedirectHandler, {'url': '/browse'}),
+    (r'/', tornado.web.RedirectHandler, {u'url': u'/browse'}),
     (r'/browse', BrowseHandler),
     (r'/browse/(.*)', BrowseHandler),
     (r'/play/(.*)', PlayerHandler),
@@ -182,6 +188,7 @@ application = RaspberryPiPlayerApplication([
 
 
 def main():
+    tornado.options.parse_command_line()
     application.listen(options.port)
     ioloop = tornado.ioloop.IOLoop.instance()
     for (path, dirs, files) in os.walk(TEMPLATE_ROOT):
