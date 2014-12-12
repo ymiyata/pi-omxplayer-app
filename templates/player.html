@@ -3,16 +3,64 @@
 {% block title %}Playing: {{ filename }}{% end %}
 
 {% block body %}
-<ul>
-{% for control in controls %}
-    <li>
-        <a id='playback_{{ control }}' href='javascript:void(0)'>{{ control }}</a>
-        <script>
-            $('#playback_{{ control }}').click(function() {
-                $.ajax('/control/{{ control }}');
-            });
-        </script>
-    </li>
+<div class="container">
+  <h3><span class="glyphicon glyphicon-film" aria-hidden="true"></span>{{ filename }}</h3>
+  <div id="controls">
+    <button id="control_step-backward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-step-backward" aria-hidden="true"></span>
+    </button>
+    <button id="control_fast-backward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-fast-backward" aria-hidden="true"></span>
+    </button>
+    <button id="control_backward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-backward" aria-hidden="true"></span>
+    </button>
+    <button id="control_play" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-play" aria-hidden="true"></span>
+      <span>/</span>
+      <span class="glyphicon glyphicon-pause" aria-hidden="true"></span>
+    </button>
+    <button id="control_stop" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-stop" aria-hidden="true"></span>
+    </button>
+    <button id="control_forward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-forward" aria-hidden="true"></span>
+    </button>
+    <button id="control_fast-forward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-fast-forward" aria-hidden="true"></span>
+    </button>
+    <button id="control_step-forward" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-step-forward" aria-hidden="true"></span>
+    </button>
+    <button id="control_volume-down" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-volume-down" aria-hidden="true"></span>
+    </button>
+    <button id="control_volume-up" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-volume-up" aria-hidden="true"></span>
+    </button>
+    <button id="control_subtitles" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-subtitles" aria-hidden="true"></span>
+    </button>
+  </div>
+  <div id="audio_stream">
+    <h5>Change Audio Stream(s)</h5>
+    <button id="control_previous-audio-stream" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-circle-arrow-left" aria-hidden="true"></span>
+    </button>
+    <button id="control_next-audio-stream" type="button" class="btn btn-default btn-lg">
+      <span class="glyphicon glyphicon-circle-arrow-right" aria-hidden="true"></span>
+    </button>
+  </div>
+</div>
 {% end %}
-</ul>
+
+{% block js %}
+  {% for control in controls %}
+  <script>
+    $('#control_{{ control }}').click(function() {
+      $.ajax('/control/{{ filepath }}?control={{ control }}');
+    });
+  </script>
+  {% end %}
 {% end %}
+

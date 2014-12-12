@@ -4,12 +4,30 @@
 
 {% block body %}
 {% import os %}
-<ul>
-{% for file in files %}
-    <li><a href="/play/{{ os.path.join(relpath, file) }}">{{ file }}</a></li>
-{% end %}
-{% for directory in directories %}
-    <li><a href="/browse/{{ os.path.join(relpath, directory) }}">{{ directory }}</a></li>
-{% end %}
-</ul>
+<ol class="breadcrumb">
+  {% set names = relpath.split(os.sep) %}
+  {% for i in xrange(len(names)) %}
+  <li>
+    <a href="/browse/{{ os.sep.join(names[:i]) }}">{% if i > 0 %}{{ names[i-1] }}{% else %}/{% end %}</a>
+  </li>
+  {% end %}
+  <li class="active">{{ names[-1] }}</li>
+</ol>
+<table class="table-condensed">
+  <thead>
+    <tr><td>Name</td></tr>
+  </thead>
+  <tbody>
+  {% for file in sorted(files) %}
+    <tr class="active">
+      <td><span class="glyphicon glyphicon-file" aria-hidden="true"></span> <a href="/play/{{ os.path.join(relpath, file) }}">{{ file }}</a></td>
+    </tr>
+  {% end %}
+  {% for directory in sorted(directories) %}
+    <tr>
+      <td><span class="glyphicon glyphicon-folder-close" aria-hidden="true"></span> <a href="/browse/{{ os.path.join(relpath, directory) }}">{{ directory }}</a></td>
+    </tr>
+  {% end %}
+  </tbody>
+</table>
 {% end %}

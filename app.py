@@ -45,6 +45,8 @@ class BrowseHandler(BaseHandler):
     def get(self, path=''):
         dirpath = (os.path.join(options.media_root, path)
                 if path else options.media_root)
+        if not isdir(dirpath):
+            raise tornado.web.HTTPError(404)
         files = [f for f in os.listdir(dirpath)
                 if isfile(os.path.join(dirpath, f))]
         directories = [d for d in os.listdir(dirpath)
@@ -67,17 +69,27 @@ class PlayerHandler(BaseHandler):
 
     @tornado.web.asynchronous
     def get(self, filepath):
-        self.application.play(filepath)
+        if not isfile(os.path.join(options.media_root, filepath)):
+            raise tornado.web.HTTPError(404)
         self.render(u'player.html', controls=self.application.control_names(),
-                filename=ntpath.basename(filepath))
+                filepath=filepath, filename=ntpath.basename(filepath))
 
 
 class ControlHandler(BaseHandler):
     """Handler to control the currently playing video."""
 
     @tornado.web.asynchronous
-    def get(self, control):
-        self.application.control(control)
+    def get(self, filepath):
+        if not isfile(os.path.join(options.media_root, filepath)):
+            raise tornado.web.HTTPError(404)
+        control = self.get_argument(u'control', u'play')
+        if not self.application.is_playing() and control == u'play':
+            self.application.play(filepath)
+        else:
+            try:
+                self.application.control(control)
+            except subprocess.CalledProcessError, e:
+                self.application.quit()
         self.write(dict(message='Executed {}'.format(control)))
         self.finish()
 
@@ -91,13 +103,18 @@ class RaspberryPiPlayerApplication(tornado.web.Application):
         self.__control_map = {
             u'play': Control(u'p'),
             u'pause': Control(u'p'),
-            u'volumn-up': Control(u'+'),
-            u'volumn-down': Control(u'-'),
-            u'seek+30': Control(u'\x1B[C'),
-            u'seek-30': Control(u'\x1B[D'),
-            u'seek+600': Control(u'\x1B[C'),
-            u'seek-600': Control(u'\x1B[D'),
-            u'quit': Control(u'q', post_processing=self.__quit),
+            u'volume-up': Control(u'+'),
+            u'volume-down': Control(u'-'),
+            u'forward': Control(u'\x1B[C'),
+            u'backward': Control(u'\x1B[D'),
+            u'fast-forward': Control(u'\x1B[A'),
+            u'fast-backward': Control(u'\x1B[B'),
+            u'step-forward': Control(u'o'),
+            u'step-backward': Control(u'i'),
+            u'next-audio-stream': Control(u'k'),
+            u'previous-audio-stream': Control(u'j'),
+            u'subtitles': Control(u's'),
+            u'stop': Control(u'q', post_processing=self.quit),
         }
         tornado.web.Application.__init__(self, handlers, **settings)
 
@@ -110,15 +127,18 @@ class RaspberryPiPlayerApplication(tornado.web.Application):
 
     def play(self, filepath):
         """Start video playback."""
-        self.__quit()  # quit currently playback
+        self.quit()  # quit currently playback
         full_filepath = os.path.join(options.media_root, filepath)
-        self.__player_process = psutil.Popen(
-                [u'omxplayer', u'-r', u'-o', u'hdmi', full_filepath],
-                stdin=subprocess.PIPE)
-        subprocess.check_call(
-                [u'echo', '.'],
-                stdout=self.__player_process.stdin)
-        self.__is_playing = True
+        try:
+            self.__player_process = psutil.Popen(
+                    [u'omxplayer', u'-r', u'-o', u'hdmi', full_filepath],
+                    stdin=subprocess.PIPE)
+            subprocess.check_call(
+                    [u'echo', '.'],
+                    stdout=self.__player_process.stdin)
+            self.__is_playing = True
+        except subprocess.CalledProcessError, e:
+            self.__is_playing = False
 
     @decorators.playing
     def control(self, control_name):
@@ -133,11 +153,11 @@ class RaspberryPiPlayerApplication(tornado.web.Application):
             raise Exception(u'Invalid control name {}'.format(control))
 
     @decorators.playing
-    def __quit(self):
+    def quit(self):
         """Do post playback cleanup."""
         if self.__player_process:
             process = self.__player_process
-            for child in process.children(recursive=True):
+            for child in process.children():
                 child.terminate()
                 child.wait(timeout=3)
             process.terminate()
